@@ -7,9 +7,11 @@ import { Node, NodeType } from '@/types/nodes'
 export const Canvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const fabricCanvasRef = useRef<FabricCanvas | null>(null)
-  const { nodes, connections, updateNode, selectNode, removeNode, addConnection } = useCanvasStore()
+  const { nodes, connections, updateNode, selectNode, removeNode, addConnection, zoom, panX, panY, setZoom, setPan, resetView } = useCanvasStore()
   const { selectedTool, connectingFrom, setConnectingFrom } = useToolStore()
   const [previewLine, setPreviewLine] = useState<Line | null>(null)
+  const [isPanning, setIsPanning] = useState(false)
+  const [lastPanPosition, setLastPanPosition] = useState({ x: 0, y: 0 })
 
   // Fabric.jsの初期化
   useEffect(() => {
@@ -30,6 +32,20 @@ export const Canvas = () => {
           removeNode((activeObject as any).nodeId)
         }
       }
+
+      // ズームショートカット
+      if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '=')) {
+        e.preventDefault()
+        setZoom(zoom * 1.2)
+      }
+      if ((e.ctrlKey || e.metaKey) && (e.key === '-' || e.key === '_')) {
+        e.preventDefault()
+        setZoom(zoom * 0.8)
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === '0') {
+        e.preventDefault()
+        resetView()
+      }
     }
 
     window.addEventListener('keydown', handleKeyDown)
@@ -48,7 +64,68 @@ export const Canvas = () => {
       window.removeEventListener('resize', handleResize)
       fabricCanvasRef.current?.dispose()
     }
-  }, [removeNode])
+  }, [removeNode, zoom, setZoom, resetView])
+
+  // マウスホイールズームとパン機能
+  useEffect(() => {
+    if (!fabricCanvasRef.current) return
+    const canvas = fabricCanvasRef.current
+
+    // マウスホイールズーム
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      const delta = e.deltaY
+      const zoomFactor = delta > 0 ? 0.95 : 1.05
+      const newZoom = zoom * zoomFactor
+      setZoom(newZoom)
+    }
+
+    // パンツール使用時のドラッグ
+    const handleMouseDown = (e: any) => {
+      if (selectedTool === 'pan') {
+        setIsPanning(true)
+        const pointer = canvas.getPointer(e.e)
+        setLastPanPosition({ x: pointer.x, y: pointer.y })
+      }
+    }
+
+    const handleMouseMove = (e: any) => {
+      if (isPanning && selectedTool === 'pan') {
+        const pointer = canvas.getPointer(e.e)
+        const deltaX = pointer.x - lastPanPosition.x
+        const deltaY = pointer.y - lastPanPosition.y
+        setPan(panX + deltaX, panY + deltaY)
+        setLastPanPosition({ x: pointer.x, y: pointer.y })
+      }
+    }
+
+    const handleMouseUp = () => {
+      setIsPanning(false)
+    }
+
+    const canvasElement = canvas.getElement()
+    canvasElement.addEventListener('wheel', handleWheel, { passive: false })
+    canvas.on('mouse:down', handleMouseDown)
+    canvas.on('mouse:move', handleMouseMove)
+    canvas.on('mouse:up', handleMouseUp)
+
+    return () => {
+      canvasElement.removeEventListener('wheel', handleWheel)
+      canvas.off('mouse:down', handleMouseDown)
+      canvas.off('mouse:move', handleMouseMove)
+      canvas.off('mouse:up', handleMouseUp)
+    }
+  }, [zoom, setZoom, selectedTool, isPanning, lastPanPosition, panX, panY, setPan])
+
+  // ズームとパンの適用
+  useEffect(() => {
+    if (!fabricCanvasRef.current) return
+    const canvas = fabricCanvasRef.current
+
+    // Fabric.jsのビューポート変換を適用
+    canvas.setViewportTransform([zoom, 0, 0, zoom, panX, panY])
+    canvas.renderAll()
+  }, [zoom, panX, panY])
 
   // ノードの描画
   useEffect(() => {

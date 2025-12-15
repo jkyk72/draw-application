@@ -26,6 +26,9 @@ export interface CanvasState {
   nodes: Node[]
   connections: Connection[]
   selectedNodeIds: string[]
+  zoom: number
+  panX: number
+  panY: number
   history: {
     past: { nodes: Node[]; connections: Connection[] }[]
     future: { nodes: Node[]; connections: Connection[] }[]
@@ -37,6 +40,9 @@ export interface CanvasState {
   clearSelection: () => void
   addConnection: (connection: Connection) => void
   removeConnection: (id: string) => void
+  setZoom: (zoom: number) => void
+  setPan: (x: number, y: number) => void
+  resetView: () => void
   undo: () => void
   redo: () => void
 }

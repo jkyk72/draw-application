@@ -4,7 +4,7 @@ import { NodeType } from '@/types/nodes'
 
 export const Toolbar = () => {
   const { selectedTool, setSelectedTool } = useToolStore()
-  const { addNode, undo, redo, nodes, connections } = useCanvasStore()
+  const { addNode, undo, redo, nodes, connections, zoom, setZoom, resetView } = useCanvasStore()
 
   const handleAddNode = (type: NodeType) => {
     const newNode = {
@@ -140,18 +140,30 @@ export const Toolbar = () => {
         </h3>
         <div className="flex flex-col gap-2">
           <div className="flex gap-2">
-            <button className="flex-1 p-2 bg-white rounded-lg border hover:bg-gray-50 transition-all text-sm font-medium">
+            <button
+              onClick={() => setZoom(zoom * 1.2)}
+              className="flex-1 p-2 bg-white rounded-lg border hover:bg-gray-50 transition-all text-sm font-medium"
+              title="ズームイン (Ctrl++)"
+            >
               + ズームイン
             </button>
-            <button className="flex-1 p-2 bg-white rounded-lg border hover:bg-gray-50 transition-all text-sm font-medium">
+            <button
+              onClick={() => setZoom(zoom * 0.8)}
+              className="flex-1 p-2 bg-white rounded-lg border hover:bg-gray-50 transition-all text-sm font-medium"
+              title="ズームアウト (Ctrl+-)"
+            >
               - ズームアウト
             </button>
           </div>
-          <button className="p-2 bg-white rounded-lg border hover:bg-gray-50 transition-all text-sm font-medium">
+          <button
+            onClick={resetView}
+            className="p-2 bg-white rounded-lg border hover:bg-gray-50 transition-all text-sm font-medium"
+            title="表示をリセット"
+          >
             ⊡ 全体表示
           </button>
           <div className="text-center p-2 bg-gray-200 rounded-lg text-sm font-medium">
-            100%
+            {Math.round(zoom * 100)}%
           </div>
         </div>
       </section>
@@ -186,6 +198,10 @@ export const Toolbar = () => {
           <p>• Delete/Backspace: 削除</p>
           <p>• Ctrl+Z: 取り消し</p>
           <p>• Ctrl+Y: やり直し</p>
+          <p>• Ctrl++: ズームイン</p>
+          <p>• Ctrl+-: ズームアウト</p>
+          <p>• Ctrl+0: 表示リセット</p>
+          <p>• マウスホイール: ズーム</p>
         </div>
       </section>
     </aside>

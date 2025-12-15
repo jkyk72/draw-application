@@ -5,6 +5,9 @@ export const useCanvasStore = create<CanvasState>((set) => ({
   nodes: [],
   connections: [],
   selectedNodeIds: [],
+  zoom: 1,
+  panX: 0,
+  panY: 0,
   history: {
     past: [],
     future: [],
@@ -129,5 +132,17 @@ export const useCanvasStore = create<CanvasState>((set) => ({
         },
       }
     })
+  },
+
+  setZoom: (zoom: number) => {
+    set({ zoom: Math.max(0.1, Math.min(5, zoom)) }) // 10% ~ 500%
+  },
+
+  setPan: (x: number, y: number) => {
+    set({ panX: x, panY: y })
+  },
+
+  resetView: () => {
+    set({ zoom: 1, panX: 0, panY: 0 })
   },
 }))
