@@ -2,13 +2,15 @@ import { useCanvasStore, getCanvasElement } from '@/store/canvasStore'
 import { useToolStore } from '@/store/toolStore'
 import { NodeType } from '@/types/nodes'
 import { exportToJSON, exportToPNG, exportToSVG, importFromJSON } from '@/utils/exportImport'
-import { useRef } from 'react'
+import { presetTemplates, saveCustomTemplate, Template } from '@/utils/templates'
+import { useRef, useState } from 'react'
 
 export const Toolbar = () => {
   const { selectedTool, setSelectedTool } = useToolStore()
   const canvasStore = useCanvasStore()
   const { addNode, undo, redo, nodes, connections, zoom, setZoom, resetView, loadWorkflow } = canvasStore
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [isTemplatesExpanded, setIsTemplatesExpanded] = useState(false)
 
   const handleAddNode = (type: NodeType) => {
     const newNode = {
@@ -69,6 +71,40 @@ export const Toolbar = () => {
 
   const handleExportSVG = () => {
     exportToSVG(nodes, connections, `workflow-${Date.now()}.svg`)
+  }
+
+  const handleApplyTemplate = (template: Template) => {
+    if (nodes.length > 0) {
+      if (!confirm(`現在のワークフローを${template.name}テンプレートで置き換えますか？`)) {
+        return
+      }
+    }
+    loadWorkflow(template.nodes, template.connections)
+  }
+
+  const handleSaveAsTemplate = () => {
+    if (nodes.length === 0) {
+      alert('ノードがありません。まずワークフローを作成してください。')
+      return
+    }
+
+    const name = prompt('テンプレート名を入力してください:')
+    if (!name) return
+
+    const description = prompt('テンプレートの説明を入力してください (任意):') || ''
+
+    const newTemplate: Template = {
+      id: `custom-${Date.now()}`,
+      name,
+      description,
+      category: 'カスタム',
+      nodes,
+      connections,
+      isCustom: true,
+    }
+
+    saveCustomTemplate(newTemplate)
+    alert(`テンプレート「${name}」を保存しました！`)
   }
 
   return (
@@ -249,6 +285,42 @@ export const Toolbar = () => {
             🎨 SVGエクスポート
           </button>
         </div>
+      </section>
+
+      {/* テンプレート */}
+      <section>
+        <button
+          onClick={() => setIsTemplatesExpanded(!isTemplatesExpanded)}
+          className="w-full text-left flex items-center justify-between mb-3"
+        >
+          <h3 className="text-sm font-semibold text-gray-700">📚 テンプレート</h3>
+          <span className="text-xs text-gray-500">{isTemplatesExpanded ? '▼' : '▶'}</span>
+        </button>
+
+        {isTemplatesExpanded && (
+          <div className="flex flex-col gap-2">
+            <button
+              onClick={handleSaveAsTemplate}
+              className="p-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-all text-sm font-medium"
+              title="現在のワークフローをテンプレートとして保存"
+            >
+              💾 現在を保存
+            </button>
+            <div className="h-px bg-gray-300 my-1"></div>
+            {presetTemplates.map(template => (
+              <button
+                key={template.id}
+                onClick={() => handleApplyTemplate(template)}
+                className="p-2 bg-white rounded-lg border hover:bg-purple-50 hover:border-purple-400 transition-all text-left"
+                title={template.description}
+              >
+                <div className="text-xs font-semibold text-purple-600">{template.category}</div>
+                <div className="text-sm font-medium">{template.name}</div>
+                <div className="text-xs text-gray-500 truncate">{template.description}</div>
+              </button>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* 履歴操作 */}
