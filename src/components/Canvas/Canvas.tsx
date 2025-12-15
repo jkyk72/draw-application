@@ -13,8 +13,8 @@ export const Canvas = () => {
     if (!canvasRef.current) return
 
     fabricCanvasRef.current = new FabricCanvas(canvasRef.current, {
-      width: window.innerWidth - 256,
-      height: window.innerHeight - 64,
+      width: window.innerWidth - 256 - 384, // Toolbar (256px) + ChatPanel (384px)
+      height: window.innerHeight - 64, // Header (64px)
       backgroundColor: '#ffffff',
       selection: true,
     })
@@ -34,8 +34,8 @@ export const Canvas = () => {
     // リサイズ対応
     const handleResize = () => {
       fabricCanvasRef.current?.setDimensions({
-        width: window.innerWidth - 256,
-        height: window.innerHeight - 64,
+        width: window.innerWidth - 256 - 384, // Toolbar + ChatPanel
+        height: window.innerHeight - 64, // Header
       })
     }
     window.addEventListener('resize', handleResize)

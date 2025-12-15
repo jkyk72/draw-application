@@ -1,5 +1,6 @@
 import { Toolbar } from './components/Toolbar/Toolbar'
 import { Canvas } from './components/Canvas/Canvas'
+import { ChatPanel } from './components/ChatPanel/ChatPanel'
 
 function App() {
   return (
@@ -7,12 +8,13 @@ function App() {
       <header className="bg-gray-800 text-white p-4 shadow-lg">
         <h1 className="text-2xl font-bold">AI-Driven Workflow Editor</h1>
         <p className="text-sm text-gray-300 mt-1">
-          自然言語で編集できるワークフロー図エディタ
+          自然言語で編集できるワークフロー図エディタ - Claude AI搭載
         </p>
       </header>
       <main className="flex-1 flex overflow-hidden">
         <Toolbar />
         <Canvas />
+        <ChatPanel />
       </main>
     </div>
   )
