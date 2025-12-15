@@ -1,12 +1,15 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Canvas as FabricCanvas, Rect, Polygon, Ellipse, Group, Line, Triangle, Text, Object as FabricObject } from 'fabric'
 import { useCanvasStore } from '@/store/canvasStore'
+import { useToolStore } from '@/store/toolStore'
 import { Node, NodeType } from '@/types/nodes'
 
 export const Canvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const fabricCanvasRef = useRef<FabricCanvas | null>(null)
-  const { nodes, connections, updateNode, selectNode, removeNode } = useCanvasStore()
+  const { nodes, connections, updateNode, selectNode, removeNode, addConnection } = useCanvasStore()
+  const { selectedTool, connectingFrom, setConnectingFrom } = useToolStore()
+  const [previewLine, setPreviewLine] = useState<Line | null>(null)
 
   // Fabric.jsの初期化
   useEffect(() => {
@@ -76,6 +79,32 @@ export const Canvas = () => {
             selectNode((fabricObject as any).nodeId)
           }
         })
+
+        // コネクトモードでのクリックイベント
+        fabricObject.on('mousedown', () => {
+          if (selectedTool === 'connect' && (fabricObject as any).nodeId) {
+            const nodeId = (fabricObject as any).nodeId
+
+            if (!connectingFrom) {
+              // 最初のノードを選択
+              setConnectingFrom(nodeId)
+            } else if (connectingFrom !== nodeId) {
+              // 2つ目のノードを選択 - 接続を作成
+              addConnection({
+                id: crypto.randomUUID(),
+                fromNodeId: connectingFrom,
+                toNodeId: nodeId,
+              })
+              setConnectingFrom(null)
+
+              // プレビューラインをクリア
+              if (previewLine) {
+                canvas.remove(previewLine)
+                setPreviewLine(null)
+              }
+            }
+          }
+        })
       }
     })
 
@@ -121,11 +150,66 @@ export const Canvas = () => {
     })
 
     canvas.renderAll()
-  }, [nodes, connections, updateNode, selectNode])
+  }, [nodes, connections, updateNode, selectNode, selectedTool, connectingFrom, setConnectingFrom, addConnection, previewLine])
+
+  // プレビューライン（接続中の線）を表示
+  useEffect(() => {
+    if (!fabricCanvasRef.current) return
+    const canvas = fabricCanvasRef.current
+
+    if (selectedTool === 'connect' && connectingFrom) {
+      const fromNode = nodes.find(n => n.id === connectingFrom)
+      if (!fromNode) return
+
+      const handleMouseMove = (e: any) => {
+        const pointer = canvas.getPointer(e.e)
+
+        // 既存のプレビューラインを削除
+        if (previewLine) {
+          canvas.remove(previewLine)
+        }
+
+        // 新しいプレビューラインを作成
+        const newLine = new Line(
+          [
+            fromNode.x + fromNode.width / 2,
+            fromNode.y + fromNode.height / 2,
+            pointer.x,
+            pointer.y,
+          ],
+          {
+            stroke: '#3b82f6',
+            strokeWidth: 2,
+            strokeDashArray: [5, 5],
+            selectable: false,
+            evented: false,
+          }
+        )
+
+        canvas.add(newLine)
+        setPreviewLine(newLine)
+        canvas.renderAll()
+      }
+
+      canvas.on('mouse:move', handleMouseMove)
+
+      return () => {
+        canvas.off('mouse:move', handleMouseMove)
+        if (previewLine) {
+          canvas.remove(previewLine)
+        }
+      }
+    }
+  }, [selectedTool, connectingFrom, nodes, previewLine])
 
   return (
     <div className="relative w-full h-full bg-gray-50">
       <canvas ref={canvasRef} />
+      {selectedTool === 'connect' && connectingFrom && (
+        <div className="absolute top-4 left-4 bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg">
+          接続先のノードをクリックしてください
+        </div>
+      )}
     </div>
   )
 }
