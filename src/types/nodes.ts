@@ -45,6 +45,8 @@ export interface CanvasState {
   resetView: () => void
   undo: () => void
   redo: () => void
+  loadWorkflow: (nodes: Node[], connections: Connection[]) => void
+  clearWorkflow: () => void
 }
 
 export type ToolType = 'select' | 'pan' | 'connect' | 'delete'

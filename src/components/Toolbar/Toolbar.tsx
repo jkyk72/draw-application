@@ -1,10 +1,14 @@
-import { useCanvasStore } from '@/store/canvasStore'
+import { useCanvasStore, getCanvasElement } from '@/store/canvasStore'
 import { useToolStore } from '@/store/toolStore'
 import { NodeType } from '@/types/nodes'
+import { exportToJSON, exportToPNG, exportToSVG, importFromJSON } from '@/utils/exportImport'
+import { useRef } from 'react'
 
 export const Toolbar = () => {
   const { selectedTool, setSelectedTool } = useToolStore()
-  const { addNode, undo, redo, nodes, connections, zoom, setZoom, resetView } = useCanvasStore()
+  const canvasStore = useCanvasStore()
+  const { addNode, undo, redo, nodes, connections, zoom, setZoom, resetView, loadWorkflow } = canvasStore
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleAddNode = (type: NodeType) => {
     const newNode = {
@@ -24,6 +28,47 @@ export const Toolbar = () => {
           : '終了',
     }
     addNode(newNode)
+  }
+
+  const handleExportJSON = () => {
+    exportToJSON(nodes, connections, `workflow-${Date.now()}.json`)
+  }
+
+  const handleImportJSON = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    try {
+      const data = await importFromJSON(file)
+
+      if (confirm(`${data.nodes.length}個のノードと${data.connections.length}個の接続をインポートします。現在のワークフローは上書きされます。よろしいですか？`)) {
+        loadWorkflow(data.nodes, data.connections)
+      }
+    } catch (error) {
+      alert(`インポートに失敗しました: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+
+    // ファイル入力をリセット
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleExportPNG = () => {
+    const canvasElement = getCanvasElement()
+    if (!canvasElement) {
+      alert('Canvas is not available')
+      return
+    }
+    exportToPNG(canvasElement, `workflow-${Date.now()}.png`)
+  }
+
+  const handleExportSVG = () => {
+    exportToSVG(nodes, connections, `workflow-${Date.now()}.svg`)
   }
 
   return (
@@ -168,6 +213,44 @@ export const Toolbar = () => {
         </div>
       </section>
 
+      {/* エクスポート・インポート */}
+      <section>
+        <h3 className="text-sm font-semibold mb-3 text-gray-700">
+          ファイル操作
+        </h3>
+        <div className="flex flex-col gap-2">
+          <button
+            onClick={handleExportJSON}
+            className="p-2 bg-white rounded-lg border hover:bg-blue-50 hover:border-blue-400 transition-all text-sm font-medium"
+            title="JSONとしてエクスポート"
+          >
+            💾 JSONエクスポート
+          </button>
+          <button
+            onClick={handleImportClick}
+            className="p-2 bg-white rounded-lg border hover:bg-green-50 hover:border-green-400 transition-all text-sm font-medium"
+            title="JSONからインポート"
+          >
+            📂 JSONインポート
+          </button>
+          <div className="h-px bg-gray-300 my-1"></div>
+          <button
+            onClick={handleExportPNG}
+            className="p-2 bg-white rounded-lg border hover:bg-purple-50 hover:border-purple-400 transition-all text-sm font-medium"
+            title="PNG画像としてエクスポート"
+          >
+            🖼️ PNGエクスポート
+          </button>
+          <button
+            onClick={handleExportSVG}
+            className="p-2 bg-white rounded-lg border hover:bg-orange-50 hover:border-orange-400 transition-all text-sm font-medium"
+            title="SVG画像としてエクスポート"
+          >
+            🎨 SVGエクスポート
+          </button>
+        </div>
+      </section>
+
       {/* 履歴操作 */}
       <section>
         <h3 className="text-sm font-semibold mb-3 text-gray-700">履歴</h3>
@@ -196,6 +279,8 @@ export const Toolbar = () => {
         </h3>
         <div className="text-xs text-gray-600 space-y-1">
           <p>• Delete/Backspace: 削除</p>
+          <p>• Ctrl+C: コピー</p>
+          <p>• Ctrl+V: ペースト</p>
           <p>• Ctrl+Z: 取り消し</p>
           <p>• Ctrl+Y: やり直し</p>
           <p>• Ctrl++: ズームイン</p>
@@ -204,6 +289,15 @@ export const Toolbar = () => {
           <p>• マウスホイール: ズーム</p>
         </div>
       </section>
+
+      {/* 隠しファイル入力 */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".json,application/json"
+        onChange={handleImportJSON}
+        className="hidden"
+      />
     </aside>
   )
 }
