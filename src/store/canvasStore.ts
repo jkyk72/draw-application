@@ -1,6 +1,17 @@
 import { create } from 'zustand'
 import { CanvasState, Node, Connection } from '@/types/nodes'
 
+// Canvas要素への参照をグローバルに保持（Reactの外で管理）
+let fabricCanvasElement: HTMLCanvasElement | null = null
+
+export const setCanvasElement = (element: HTMLCanvasElement | null) => {
+  fabricCanvasElement = element
+}
+
+export const getCanvasElement = (): HTMLCanvasElement | null => {
+  return fabricCanvasElement
+}
+
 export const useCanvasStore = create<CanvasState>((set) => ({
   nodes: [],
   connections: [],
@@ -144,5 +155,29 @@ export const useCanvasStore = create<CanvasState>((set) => ({
 
   resetView: () => {
     set({ zoom: 1, panX: 0, panY: 0 })
+  },
+
+  loadWorkflow: (nodes: Node[], connections: Connection[]) => {
+    set((state) => ({
+      nodes,
+      connections,
+      selectedNodeIds: [],
+      history: {
+        past: [...state.history.past, { nodes: state.nodes, connections: state.connections }],
+        future: [],
+      },
+    }))
+  },
+
+  clearWorkflow: () => {
+    set((state) => ({
+      nodes: [],
+      connections: [],
+      selectedNodeIds: [],
+      history: {
+        past: [...state.history.past, { nodes: state.nodes, connections: state.connections }],
+        future: [],
+      },
+    }))
   },
 }))
