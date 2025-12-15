@@ -1,10 +1,10 @@
-import { useState } from 'react'
 import { useCanvasStore } from '@/store/canvasStore'
-import { NodeType, ToolType } from '@/types/nodes'
+import { useToolStore } from '@/store/toolStore'
+import { NodeType } from '@/types/nodes'
 
 export const Toolbar = () => {
-  const [selectedTool, setSelectedTool] = useState<ToolType>('select')
-  const { addNode, undo, redo, nodes } = useCanvasStore()
+  const { selectedTool, setSelectedTool } = useToolStore()
+  const { addNode, undo, redo, nodes, connections } = useCanvasStore()
 
   const handleAddNode = (type: NodeType) => {
     const newNode = {
@@ -32,7 +32,7 @@ export const Toolbar = () => {
       <div>
         <h2 className="text-lg font-bold text-gray-800">ツールバー</h2>
         <p className="text-xs text-gray-600 mt-1">
-          ノード数: {nodes.length}
+          ノード: {nodes.length} / 接続: {connections.length}
         </p>
       </div>
 
